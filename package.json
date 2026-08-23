@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "node build.js && node postbuild.js && node afterfix.js && node creation-fix.js && node bonus-expansion.js"
+    "build": "node build.js && node postbuild.js && node afterfix.js && node creation-fix.js && node bonus-expansion.js && node npc-generator.js"
   }
 }
