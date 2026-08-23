@@ -1,7 +1,7 @@
 const {spawnSync}=require('child_process');
 const path=require('path');
 
-const release=String(process.env.QUIMERA_RELEASE||'32');
+const release=String(process.env.QUIMERA_RELEASE||'33');
 const stages=[
   ['Base','build.js'],
   ['Campanhas','campaign-fix.js'],
@@ -10,7 +10,7 @@ const stages=[
   ['PA de criação','creation-fix.js'],
   ['Bônus de atributos','bonus-expansion.js'],
   ['Gerador de NPC/monstro','npc-generator.js'],
-  ['Recursos e editores numéricos','resource-fix.js'],
+  ['Recursos, marcos e editores numéricos','resource-fix.js'],
   ['Iniciativa e descrições','initiative-adv-fix.js'],
   ['Correções de regras','qa-fixes.js'],
   ['Interface final e filtros','release-ui.js'],
