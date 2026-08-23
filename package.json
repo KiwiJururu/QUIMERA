@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "node build.js && node postbuild.js && node fix-runtime.js"
+    "build": "node build.js && node postbuild.js && node fix-runtime2.js"
   }
 }
