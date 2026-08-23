@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node build.js",
+  "buildCommand": "node build.js && node campaign-fix.js",
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/ficha", "destination": "/sheet.html" }
