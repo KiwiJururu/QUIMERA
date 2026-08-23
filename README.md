@@ -1,40 +1,48 @@
 # Quimera Online
 
-Painel online do sistema de RPG **Quimera**, com fichas sincronizadas em tempo real.
+Painel online do sistema de RPG **Quimera**, com campanhas, fichas e iniciativa sincronizadas em tempo real.
 
-## O que já funciona
+## Recursos atuais
 
-- cadastro/login com Supabase Auth;
-- várias campanhas por usuário;
-- criação de campanha e entrada por código;
-- jogador escolhe a campanha e pode ter mais de um personagem;
-- ficha automática baseada na versão v5 do Quimera;
-- salvamento automático da ficha no Supabase;
-- atualização em tempo real entre jogador e mestre;
-- painel do mestre com resumo de nível, jogador, PV e Defesa;
-- NPCs e monstros separados;
-- pastas e subpastas para NPCs/monstros;
-- mover por seletor ou arrastar e soltar no desktop;
-- duplicar NPC/monstro;
-- marcar NPC/monstro como “Em cena”;
-- painel de sessão ao vivo.
+- cadastro/login simplificado por **nome + senha**;
+- várias campanhas por usuário, com criação e entrada por código;
+- jogadores com múltiplos personagens;
+- ficha automática com CA, CS, PA, perícias, vantagens, bônus, recursos e laços;
+- salvamento automático no Supabase e atualização em tempo real;
+- iniciativa compartilhada: visível ao grupo e editável apenas pelo mestre;
+- painel do mestre com jogadores, NPCs e monstros;
+- pastas e subpastas para NPCs/monstros, mover, duplicar e marcar “Em cena”;
+- NPCs/monstros com **Edição livre do mestre** opcional ou regras normais da ficha;
+- gerador rápido de NPC/monstro por orçamento de PA;
+- PA de Criação, retrocesso de nível e descompra de perícias com reembolso;
+- bônus/desvantagens de dados e de atributos;
+- descrições consultáveis das vantagens;
+- filtros opcionais para mostrar apenas perícias e vantagens adquiridas;
+- controles rápidos de recursos para NPCs/monstros.
 
-## Arquivos
+## Build
 
-- `index.html`: login, campanhas e painel do mestre/jogador.
-- `sheet.html`: ficha completa online.
-- `vercel.json`: rota `/ficha` e cabeçalhos básicos.
-- `supabase/migrations`: cópia das migrações aplicadas ao banco.
+O build é coordenado por **`build-pipeline.js`**. O `package.json` possui apenas um ponto de entrada (`npm run build`), e a pipeline executa os módulos de transformação em uma ordem explícita, aplica a versão final dos assets e encerra com testes de regressão.
 
-## Supabase
+A ideia é manter as features em módulos pequenos sem depender de uma longa cadeia escondida no `package.json`. Scripts antigos que já não faziam parte da aplicação foram removidos para evitar confusão.
 
-O frontend usa somente a **publishable key**, que pode ficar no navegador. A proteção dos dados é feita por Row Level Security (RLS): jogadores só acessam os próprios personagens, enquanto o mestre acessa os dados da campanha que administra. NPCs, monstros e pastas são privados para o mestre.
+Arquivos principais:
 
-## Antes de liberar cadastro ao público
+- `index.html`: login, campanhas e painel do mestre/jogador;
+- `sheet.html`: base da ficha online;
+- `build.js`: geração inicial de `dist/`;
+- `build-pipeline.js`: ordem central das etapas de build;
+- `release-ui.js`: acabamento da release, filtros e versão final dos assets;
+- `selftest.js`: testes automáticos de regressão;
+- `vercel.json`: rota `/ficha` e cabeçalhos;
+- `supabase/migrations`: migrações versionadas do banco.
 
-Depois do primeiro deploy na Vercel, configure em **Supabase → Authentication → URL Configuration**:
+## Segurança e Supabase
 
-- **Site URL**: URL de produção da Vercel;
-- **Redirect URLs**: adicione a mesma URL (e previews, se desejar).
+O navegador recebe somente a **publishable key** do Supabase. A proteção dos dados é feita por Row Level Security (RLS): jogadores acessam os próprios personagens, enquanto o mestre administra os dados da campanha, NPCs, monstros e pastas.
 
-Isso garante que o link de confirmação de e-mail volte para o site correto.
+A criação de conta usa a Edge Function `friend-signup`, que cria internamente o identificador de autenticação sem expor e-mail ao jogador. A criação de campanha usa a RPC autenticada `create_campaign`.
+
+## CI
+
+O workflow em `.github/workflows/ci.yml` executa `npm run build`. O build falha se alguma feature crítica desaparecer, algum runtime final não compilar ou regras matemáticas essenciais regressarem.
