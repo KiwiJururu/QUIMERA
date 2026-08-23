@@ -76,7 +76,7 @@ const runtime=String.raw`(() => {
       const slots=[4,8,12,16].filter(n=>(Number(s.attrs[code])||0)>=n).length;if(!slots)continue;
       const groups=(Q.adv[code]||[]).map((g,gi)=>({gi,name:g[0]}));
       for(let n=0;n<Math.min(slots,groups.length);n++){
-        const idx=Math.floor(Math.random()*groups.length),g=groups.splice(idx,1)[0],key=code+':'+g.gi+':0;s.advantages[key]=true;
+        const idx=Math.floor(Math.random()*groups.length),g=groups.splice(idx,1)[0],key=code+':'+g.gi+':0';s.advantages[key]=true;
       }
     }
   }
@@ -85,7 +85,7 @@ const runtime=String.raw`(() => {
     if(!confirm('Gerar novamente substituirá nível, atributos, perícias, vantagens e bônus mecânicos atuais. Continuar?'))return;
     const profile=choose(PROFILES);resetMechanical();
     if(!s.creation||typeof s.creation!=='object')s.creation={enabled:true,pa:total};s.creation.enabled=true;s.creation.pa=total;
-    const spentLevels=buildLevels(total);buildAttrs(profile);buildFreeAdvantages();buildSkills(profile);
+    buildLevels(total);buildAttrs(profile);buildFreeAdvantages();buildSkills(profile);
     const left=Number(s.creation.pa)||0,spent=total-left;
     save();renderAll();
     const result=document.querySelector('#npcGeneratorResult');if(result)result.innerHTML='<b>'+profile.name+'</b> · NV '+s.char.level+' · '+spent+' PA distribuídos'+(left?' · '+left+' PA restantes':' · orçamento totalmente usado');
