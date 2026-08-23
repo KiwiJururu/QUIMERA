@@ -1,6 +1,6 @@
 const fs=require('fs'),path=require('path'),vm=require('vm');
 const out=path.join(__dirname,'dist');
-const release=String(process.env.QUIMERA_RELEASE||'29');
+const release=String(process.env.QUIMERA_RELEASE||'30');
 const indexPath=path.join(out,'index.html');
 const sheetPath=path.join(out,'sheet.html');
 let index=fs.readFileSync(indexPath,'utf8');
@@ -13,14 +13,29 @@ function dashboardNavigationRuntime(){
   const MASTER_TABS=new Set(['session','players','npcs','monsters']);
   const PLAYER_TABS=new Set(['players']);
   function allowedTab(tab){return (currentRole==='master'?MASTER_TABS:PLAYER_TABS).has(tab)}
+  function folderForTab(tab){
+    if(tab!=='npcs'&&tab!=='monsters')return null;
+    try{
+      const fromRuntime=window.QuimeraFolderSelection?.get?.(tab);
+      if(fromRuntime&&fromRuntime!=='all')return fromRuntime;
+      const p=new URLSearchParams(location.search);
+      if(p.get('tab')===tab&&p.has('folder'))return p.get('folder');
+    }catch{}
+    return null;
+  }
   function campaignUrl(tab=activeTab){
     const u=new URL(location.href);u.pathname='/';u.search='';u.hash='';
-    if(currentCampaign?.id){u.searchParams.set('campaign',currentCampaign.id);if(allowedTab(tab))u.searchParams.set('tab',tab)}
+    if(currentCampaign?.id){
+      u.searchParams.set('campaign',currentCampaign.id);
+      if(allowedTab(tab))u.searchParams.set('tab',tab);
+      const folder=folderForTab(tab);if(folder)u.searchParams.set('folder',folder);
+    }
     return u.pathname+u.search;
   }
   function syncCampaignUrl(tab=activeTab){
     if(!currentCampaign)return;
-    history.replaceState({campaign:currentCampaign.id,tab},'',campaignUrl(tab));
+    const folder=folderForTab(tab);
+    history.replaceState({campaign:currentCampaign.id,tab,folder:folder||null},'',campaignUrl(tab));
   }
 
   if(typeof openCampaign==='function'){
@@ -47,6 +62,7 @@ function dashboardNavigationRuntime(){
     u.searchParams.set('id',open.dataset.openSheet);
     u.searchParams.set('returnCampaign',currentCampaign.id);
     if(allowedTab(activeTab))u.searchParams.set('returnTab',activeTab);
+    const folder=folderForTab(activeTab);if(folder)u.searchParams.set('returnFolder',folder);
     location.href=u.pathname+u.search;
   },true);
 
@@ -55,7 +71,7 @@ function dashboardNavigationRuntime(){
     if(currentCampaign&&tab&&allowedTab(tab)&&tab!==activeTab){activeTab=tab;renderCampaignBody()}
     if(currentCampaign)syncCampaignUrl(activeTab);
   }catch(error){console.warn('[Quimera navegação painel]',error)}
-  window.QuimeraNavigation={sync:syncCampaignUrl,campaignUrl};
+  window.QuimeraNavigation={sync:syncCampaignUrl,campaignUrl,folderForTab};
 }
 
 function sheetNavigationRuntime(){
@@ -63,9 +79,11 @@ function sheetNavigationRuntime(){
     const p=new URLSearchParams(location.search);
     const campaign=p.get('returnCampaign')||row?.campaign_id||'';
     const tab=p.get('returnTab')||'';
+    const folder=p.get('returnFolder')||'';
     const u=new URL('/',location.origin);
     if(campaign)u.searchParams.set('campaign',campaign);
     if(tab)u.searchParams.set('tab',tab);
+    if(folder&&(tab==='npcs'||tab==='monsters'))u.searchParams.set('folder',folder);
     return u.pathname+u.search;
   }
   function sameOriginPreviousPage(){
@@ -98,6 +116,6 @@ fs.writeFileSync(indexPath,index);fs.writeFileSync(sheetPath,sheet);
 
 const infoPath=path.join(out,'build-info.json');
 if(fs.existsSync(infoPath)){
-  const info=JSON.parse(fs.readFileSync(infoPath,'utf8'));info.release=Number(release);info.features=Array.from(new Set([...(info.features||[]),'navigation-context']));fs.writeFileSync(infoPath,JSON.stringify(info,null,2));
+  const info=JSON.parse(fs.readFileSync(infoPath,'utf8'));info.release=Number(release);info.features=Array.from(new Set([...(info.features||[]),'navigation-context','folder-navigation-context']));fs.writeFileSync(infoPath,JSON.stringify(info,null,2));
 }
-console.log('Quimera v'+release+': contexto de campanha/aba preservado ao abrir e voltar de fichas.');
+console.log('Quimera v'+release+': contexto de campanha, aba e pasta preservado ao abrir e voltar de fichas.');
