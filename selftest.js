@@ -41,6 +41,14 @@ for(const key of ['pvMax','psMax','pdMax','attrModifiers'])assert.ok(dashboard.i
 const generator=fs.readFileSync(path.join(out,'sheet-npc-generator.js'),'utf8');
 assert.ok(generator.includes('Math.floor(Math.random()*3)'),'gerador voltou a escolher sempre a primeira vantagem');
 
+// Reembolso só existe quando há registro real da compra. Isso impede criar PA alternando edição livre -> normal.
+const leveldown=fs.readFileSync(path.join(out,'sheet-leveldown.js'),'utf8');
+const refinements=fs.readFileSync(path.join(out,'sheet-refinements.js'),'utf8');
+assert.ok(leveldown.includes('Nível retrocedido sem reembolso'),'proteção de reembolso de nível ausente');
+assert.ok(refinements.includes('Perícia reduzida sem reembolso'),'proteção de reembolso de perícia ausente');
+assert.ok(!leveldown.includes("payment?.source||(s.creation.enabled?'creation':'live')"),'fallback inseguro de nível reapareceu');
+assert.ok(!refinements.includes("payment?.source||(s.creation.enabled?'creation':'live')"),'fallback inseguro de perícia reapareceu');
+
 const buildInfo=JSON.parse(fs.readFileSync(path.join(out,'build-info.json'),'utf8'));
 assert.strictEqual(String(buildInfo.release),release,'build-info com release incorreta');
 for(const feature of ['initiative','free-edit','creation-pa','attribute-bonuses','effective-dashboard-stats','npc-generator','resource-steppers','advantage-descriptions','owned-filters'])assert.ok(buildInfo.features.includes(feature),'feature ausente no manifesto: '+feature);
@@ -62,4 +70,4 @@ assert.strictEqual(ca(4,3,2,1),10,'fórmula de CA incorreta');
 assert.strictEqual(cs(4,3,false),7,'fórmula de CS normal incorreta');
 assert.strictEqual(cs(4,3,true),11,'fórmula de CS em alerta incorreta');
 
-console.log('SELFTEST OK v'+release+' — '+loaded.length+' scripts carregados compilados; estrutura, filtros, painel, campanhas, regras e fórmulas verificadas.');
+console.log('SELFTEST OK v'+release+' — '+loaded.length+' scripts carregados compilados; estrutura, filtros, painel, reembolsos, campanhas, regras e fórmulas verificadas.');
