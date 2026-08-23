@@ -1,6 +1,6 @@
 const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert');
 const out=path.join(__dirname,'dist');
-const release=String(process.env.QUIMERA_RELEASE||'24');
+const release=String(process.env.QUIMERA_RELEASE||'25');
 const sheetPath=path.join(out,'sheet.html'),indexPath=path.join(out,'index.html');
 assert.ok(fs.existsSync(sheetPath),'dist/sheet.html ausente');
 assert.ok(fs.existsSync(indexPath),'dist/index.html ausente');
@@ -12,13 +12,14 @@ function localScripts(html){const outFiles=[],re=/<script[^>]+src=["']([^"']+)["
 assert.strictEqual(count(sheet,'data-tab="initiative"'),1,'aba Iniciativa duplicada ou ausente');
 assert.strictEqual(count(sheet,'id="initiative"'),1,'painel Iniciativa duplicado ou ausente');
 for(const id of ['attrs','skills','advantages','mods','resources','creationpa','creationmode','levelup']) assert.strictEqual(count(sheet,'id="'+id+'"'),1,'id crítico inválido: '+id);
-for(const asset of ['sheet-data.js','sheet-app.js','sheet-extra.js','sheet-leveldown.js','sheet-refinements.js','sheet-creation-fix.js','sheet-bonus-expansion.js','sheet-npc-generator.js','sheet-resource-fix.js','sheet-initiative-v21.js','sheet-adv-desc-v21.js','sheet-qa-v22.js','sheet-filters.js','dashboard-release.js']) assert.ok(fs.existsSync(path.join(out,asset)),'asset ausente: '+asset);
+for(const asset of ['sheet-data.js','sheet-app.js','sheet-extra.js','sheet-leveldown.js','sheet-refinements.js','sheet-creation-fix.js','sheet-bonus-expansion.js','sheet-npc-generator.js','sheet-resource-fix.js','sheet-initiative-v21.js','sheet-adv-desc-v21.js','sheet-qa-v22.js','sheet-filters.js','dashboard-release.js','dashboard-delete.js']) assert.ok(fs.existsSync(path.join(out,asset)),'asset ausente: '+asset);
 assert.ok(!sheet.includes('sheet-initiative-extra.js'),'carregador antigo da iniciativa ainda presente');
 assert.ok(sheet.includes('sheet-initiative-v21.js?v='+release),'iniciativa nova não versionada na release atual');
 assert.ok(sheet.includes('sheet-adv-desc-v21.js?v='+release),'descrições de vantagens ausentes');
 assert.ok(sheet.includes('sheet-qa-v22.js?v='+release),'patch QA ausente');
 assert.ok(sheet.includes('sheet-filters.js?v='+release),'filtros de adquiridos ausentes');
 assert.ok(index.includes('dashboard-release.js?v='+release),'ajuste final do resumo do painel ausente');
+assert.ok(index.includes('dashboard-delete.js?v='+release),'controles de exclusão ausentes');
 assert.ok(sheet.includes('name="quimera-release" content="'+release+'"'),'marcador da release ausente na ficha');
 assert.ok(index.includes('name="quimera-release" content="'+release+'"'),'marcador da release ausente no painel');
 
@@ -38,6 +39,15 @@ assert.ok(!/\bsave\s*\(/.test(filters),'filtro não deve gravar dados da ficha')
 const dashboard=fs.readFileSync(path.join(out,'dashboard-release.js'),'utf8');
 for(const key of ['pvMax','psMax','pdMax','attrModifiers'])assert.ok(dashboard.includes(key),'resumo efetivo do painel incompleto: '+key);
 
+const deletion=fs.readFileSync(path.join(out,'dashboard-delete.js'),'utf8');
+for(const text of ['Excluir campanha','Excluir personagem','Excluir NPC','Excluir monstro','Digite exatamente o nome da campanha'])assert.ok(deletion.includes(text),'controle de exclusão incompleto: '+text);
+assert.ok(deletion.includes("sb.from('campaigns').delete()"),'exclusão de campanha não usa o banco');
+assert.ok(deletion.includes("sb.from('characters').delete()"),'exclusão de personagem não usa o banco');
+assert.ok(deletion.includes("currentRole!=='master'"),'proteção de exclusão de campanha pelo mestre ausente');
+assert.ok(deletion.includes("ch.owner_user_id===user?.id"),'jogador não está limitado ao próprio personagem');
+assert.ok(deletion.includes("confirm('Excluir '+label"),'confirmação de exclusão de personagem ausente');
+assert.ok(deletion.includes(".eq('campaign_id',currentCampaign.id)"),'exclusão de personagem não está limitada à campanha atual');
+
 const generator=fs.readFileSync(path.join(out,'sheet-npc-generator.js'),'utf8');
 assert.ok(generator.includes('Math.floor(Math.random()*3)'),'gerador voltou a escolher sempre a primeira vantagem');
 assert.ok(generator.includes('s.char.concept=profile.name'),'arquétipo gerado não está sendo copiado para Conceito');
@@ -46,7 +56,6 @@ assert.ok(generator.includes('clearMasterSheet'),'rotina de limpeza da ficha do 
 assert.ok(generator.includes("const keptName=s.char?.name||row?.name||''"),'limpeza do mestre deixou de preservar o nome');
 assert.ok(generator.includes("s.char.concept=''"),'limpeza do mestre não remove o conceito anterior');
 
-// Reembolso só existe quando há registro real da compra. Isso impede criar PA alternando edição livre -> normal.
 const leveldown=fs.readFileSync(path.join(out,'sheet-leveldown.js'),'utf8');
 const refinements=fs.readFileSync(path.join(out,'sheet-refinements.js'),'utf8');
 assert.ok(leveldown.includes('Nível retrocedido sem reembolso'),'proteção de reembolso de nível ausente');
@@ -75,4 +84,4 @@ assert.strictEqual(ca(4,3,2,1),10,'fórmula de CA incorreta');
 assert.strictEqual(cs(4,3,false),7,'fórmula de CS normal incorreta');
 assert.strictEqual(cs(4,3,true),11,'fórmula de CS em alerta incorreta');
 
-console.log('SELFTEST OK v'+release+' — '+loaded.length+' scripts carregados compilados; estrutura, filtros, painel, gerador, limpeza, reembolsos, campanhas, regras e fórmulas verificadas.');
+console.log('SELFTEST OK v'+release+' — '+loaded.length+' scripts carregados compilados; estrutura, filtros, painel, exclusões, gerador, limpeza, reembolsos, campanhas, regras e fórmulas verificadas.');
