@@ -1,6 +1,6 @@
 const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert');
 const out=path.join(__dirname,'dist');
-const release=String(process.env.QUIMERA_RELEASE||'23');
+const release=String(process.env.QUIMERA_RELEASE||'24');
 const sheetPath=path.join(out,'sheet.html'),indexPath=path.join(out,'index.html');
 assert.ok(fs.existsSync(sheetPath),'dist/sheet.html ausente');
 assert.ok(fs.existsSync(indexPath),'dist/index.html ausente');
@@ -40,6 +40,11 @@ for(const key of ['pvMax','psMax','pdMax','attrModifiers'])assert.ok(dashboard.i
 
 const generator=fs.readFileSync(path.join(out,'sheet-npc-generator.js'),'utf8');
 assert.ok(generator.includes('Math.floor(Math.random()*3)'),'gerador voltou a escolher sempre a primeira vantagem');
+assert.ok(generator.includes('s.char.concept=profile.name'),'arquétipo gerado não está sendo copiado para Conceito');
+assert.ok(generator.includes('npcGeneratorClear'),'botão Limpar ficha do mestre ausente');
+assert.ok(generator.includes('clearMasterSheet'),'rotina de limpeza da ficha do mestre ausente');
+assert.ok(generator.includes("const keptName=s.char?.name||row?.name||''"),'limpeza do mestre deixou de preservar o nome');
+assert.ok(generator.includes("s.char.concept=''"),'limpeza do mestre não remove o conceito anterior');
 
 // Reembolso só existe quando há registro real da compra. Isso impede criar PA alternando edição livre -> normal.
 const leveldown=fs.readFileSync(path.join(out,'sheet-leveldown.js'),'utf8');
@@ -70,4 +75,4 @@ assert.strictEqual(ca(4,3,2,1),10,'fórmula de CA incorreta');
 assert.strictEqual(cs(4,3,false),7,'fórmula de CS normal incorreta');
 assert.strictEqual(cs(4,3,true),11,'fórmula de CS em alerta incorreta');
 
-console.log('SELFTEST OK v'+release+' — '+loaded.length+' scripts carregados compilados; estrutura, filtros, painel, reembolsos, campanhas, regras e fórmulas verificadas.');
+console.log('SELFTEST OK v'+release+' — '+loaded.length+' scripts carregados compilados; estrutura, filtros, painel, gerador, limpeza, reembolsos, campanhas, regras e fórmulas verificadas.');
