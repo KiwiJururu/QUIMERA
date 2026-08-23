@@ -1,7 +1,7 @@
 const {spawnSync}=require('child_process');
 const path=require('path');
 
-const release=String(process.env.QUIMERA_RELEASE||'31');
+const release=String(process.env.QUIMERA_RELEASE||'32');
 const stages=[
   ['Base','build.js'],
   ['Campanhas','campaign-fix.js'],
@@ -19,6 +19,7 @@ const stages=[
   ['Pastas de NPCs e monstros','folder-library-fix.js'],
   ['Navegação contextual','navigation-fix.js'],
   ['Slots e preços de vantagens','advantage-rules-fix.js'],
+  ['Perícias nível 0','skill-zero-fix.js'],
   ['Testes de regressão','selftest.js']
 ];
 
