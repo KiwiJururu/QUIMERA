@@ -1,7 +1,7 @@
 const {spawnSync}=require('child_process');
 const path=require('path');
 
-const release=String(process.env.QUIMERA_RELEASE||'27');
+const release=String(process.env.QUIMERA_RELEASE||'28');
 const stages=[
   ['Base','build.js'],
   ['Campanhas','campaign-fix.js'],
