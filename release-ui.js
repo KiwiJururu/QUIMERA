@@ -27,6 +27,7 @@ const filterCss=`
 </style>`;
 if(!sheet.includes('id="sheet-filter-style"'))sheet=sheet.replace('</head>',filterCss+'</head>');
 if(!sheet.includes('/sheet-filters.js'))sheet=sheet.replace('</body>','<script src="/sheet-filters.js?v='+release+'"></script></body>');
+if(!index.includes('/dashboard-release.js'))index=index.replace('</body>','<script src="/dashboard-release.js?v='+release+'"></script></body>');
 
 function sheetFiltersRuntime(){
   const STORE='quimera.sheet.filters.v1';
@@ -123,7 +124,6 @@ function sheetFiltersRuntime(){
     renderAdvantages=function(){const result=previousRenderAdvantages.apply(this,arguments);applyAdvantages();return result};
   }
 
-  // A ficha pode já ter sido renderizada antes deste script, então aplica uma vez imediatamente.
   try{applySkills();applyAdvantages()}catch(error){console.warn('[Quimera filtros]',error)}
   window.QuimeraSheetFilters={
     get:()=>({...state}),
@@ -131,10 +131,42 @@ function sheetFiltersRuntime(){
   };
 }
 
-const runtime='('+sheetFiltersRuntime.toString()+')();';
-new vm.Script(runtime,{filename:'sheet-filters.js'});
-fs.writeFileSync(path.join(out,'sheet-filters.js'),runtime);
+function dashboardReleaseRuntime(){
+  if(typeof summary!=='function')return;
+  const previousSummary=summary;
+  function total(st,code){
+    let value=Number(st.attrs?.[code])||0;
+    for(const mod of (st.attrModifiers||[])){
+      if(mod.target!=='Geral'&&mod.target!==code)continue;
+      const amount=Math.max(0,Number(mod.amount)||0);
+      value+=mod.type==='Desvantagem'?-amount:amount;
+    }
+    return value;
+  }
+  function current(value,max){
+    if(value==null)return max;
+    return Math.max(0,Math.min(max,Number(value)||0));
+  }
+  summary=function(ch){
+    const result=previousSummary(ch),st=ch.sheet||{},level=Number(st.char?.level??ch.level??1);
+    const con=total(st,'CON'),des=total(st,'DES'),per=total(st,'PER'),intel=total(st,'INT'),esp=total(st,'ESP');
+    const pvMax=Math.max(0,con*3+level),psMax=Math.max(0,esp+intel+level),pdMax=Math.max(0,con+esp+level),resources=st.resources||{};
+    result.ca=con+des+per+(Number(st.char?.armor)||0);
+    result.cs=(st.char?.alert?per*2:per)+level;
+    result.pvMax=pvMax;result.psMax=psMax;result.pdMax=pdMax;
+    result.pv=current(resources.pv,pvMax);result.ps=current(resources.ps,psMax);result.pd=current(resources.pd,pdMax);
+    return result;
+  };
+  try{if(typeof renderCampaignBody==='function'&&typeof currentCampaign!=='undefined'&&currentCampaign)renderCampaignBody()}catch(error){console.warn('[Quimera painel]',error)}
+}
+
+const filtersRuntime='('+sheetFiltersRuntime.toString()+')();';
+const dashboardRuntime='('+dashboardReleaseRuntime.toString()+')();';
+new vm.Script(filtersRuntime,{filename:'sheet-filters.js'});
+new vm.Script(dashboardRuntime,{filename:'dashboard-release.js'});
+fs.writeFileSync(path.join(out,'sheet-filters.js'),filtersRuntime);
+fs.writeFileSync(path.join(out,'dashboard-release.js'),dashboardRuntime);
 fs.writeFileSync(sheetPath,sheet);
 fs.writeFileSync(indexPath,index);
-fs.writeFileSync(path.join(out,'build-info.json'),JSON.stringify({release:Number(release),built_at:new Date().toISOString(),features:['campaigns','realtime','initiative','free-edit','creation-pa','attribute-bonuses','npc-generator','resource-steppers','advantage-descriptions','owned-filters']},null,2));
-console.log('Quimera v'+release+': versão final e filtros de adquiridos aplicados.');
+fs.writeFileSync(path.join(out,'build-info.json'),JSON.stringify({release:Number(release),built_at:new Date().toISOString(),features:['campaigns','realtime','initiative','free-edit','creation-pa','attribute-bonuses','effective-dashboard-stats','npc-generator','resource-steppers','advantage-descriptions','owned-filters']},null,2));
+console.log('Quimera v'+release+': versão final, filtros e resumo efetivo do painel aplicados.');
