@@ -102,4 +102,12 @@ const runtime='('+dashboardDeleteRuntime.toString()+')();';
 new vm.Script(runtime,{filename:'dashboard-delete.js'});
 fs.writeFileSync(path.join(out,'dashboard-delete.js'),runtime);
 fs.writeFileSync(indexPath,index);
+
+const infoPath=path.join(out,'build-info.json');
+if(fs.existsSync(infoPath)){
+  const info=JSON.parse(fs.readFileSync(infoPath,'utf8'));
+  if(!Array.isArray(info.features))info.features=[];
+  for(const feature of ['campaign-delete','character-delete'])if(!info.features.includes(feature))info.features.push(feature);
+  fs.writeFileSync(infoPath,JSON.stringify(info,null,2));
+}
 console.log('Quimera v'+release+': exclusão segura de campanhas e personagens aplicada.');
