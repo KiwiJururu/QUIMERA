@@ -77,7 +77,12 @@ if(!sheetInitiative.includes('QUIMERA_MANUAL_TIE_ORDER_V26')){
     const list=listEl(),badge=badgeEl();if(!list||!badge)return;
     const master=role==='master',ordered=manualSorted();
     badge.textContent=master?'Mestre · edição liberada':'Jogador · somente leitura';
-    const rows=ordered.length?ordered.map((item,index)=>`<div class="initiative-sheet-row"><div class="initiative-sheet-pos">${index+1}</div><div><div class="initiative-sheet-name">${esc(item.name||'Sem nome')}</div><div class="initiative-sheet-kind">${kind(item.kind)}</div></div>${master?`<input data-v21-value="${esc(item.id)}" type="number" value="${Number(item.value)||0}">`:`<div class="initiative-sheet-value">${Number(item.value)||0}</div>`}${master?`<div class="initiative-sheet-tie-controls"><button data-v26-up="${esc(item.id)}" title="Subir dentro do empate" ${manualCanMove(item.id,-1)?'':'disabled'}>↑</button><button data-v26-down="${esc(item.id)}" title="Descer dentro do empate" ${manualCanMove(item.id,1)?'':'disabled'}>↓</button><button data-v21-del="${esc(item.id)}" class="danger">×</button></div>`:'<span></span>'}</div>`).join(''):'<div class="note">A iniciativa ainda não foi preenchida.</div>';
+    const rows=ordered.length?ordered.map(function(item,index){
+      const value=Number(item.value)||0;
+      const valuePart=master?'<input data-v21-value="'+esc(item.id)+'" type="number" value="'+value+'">':'<div class="initiative-sheet-value">'+value+'</div>';
+      const actions=master?'<div class="initiative-sheet-tie-controls"><button data-v26-up="'+esc(item.id)+'" title="Subir dentro do empate" '+(manualCanMove(item.id,-1)?'':'disabled')+'>↑</button><button data-v26-down="'+esc(item.id)+'" title="Descer dentro do empate" '+(manualCanMove(item.id,1)?'':'disabled')+'>↓</button><button data-v21-del="'+esc(item.id)+'" class="danger">×</button></div>':'<span></span>';
+      return '<div class="initiative-sheet-row"><div class="initiative-sheet-pos">'+(index+1)+'</div><div><div class="initiative-sheet-name">'+esc(item.name||'Sem nome')+'</div><div class="initiative-sheet-kind">'+kind(item.kind)+'</div></div>'+valuePart+actions+'</div>';
+    }).join(''):'<div class="note">A iniciativa ainda não foi preenchida.</div>';
     list.innerHTML=rows+(master?'<div class="initiative-sheet-actions"><button id="v21Add" class="primary">+ Adicionar</button><button id="v21Clear" class="danger">Limpar</button></div>':'');
     if(!master)return;
     list.querySelector('#v21Add').onclick=openAdd;
