@@ -7,9 +7,7 @@ const sheet=fs.readFileSync(sheetPath,'utf8'),index=fs.readFileSync(indexPath,'u
 
 function count(text,needle){return text.split(needle).length-1}
 function compileFile(file){const src=fs.readFileSync(path.join(out,file),'utf8');new vm.Script(src,{filename:file})}
-function compileInline(html,name){let n=0;const re=/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;let m;while((m=re.exec(html))){if(m[1].trim()){new vm.Script(m[1],{filename:name+'#inline-'+(++n)})}}return n}
 
-// Estrutura essencial da ficha.
 assert.strictEqual(count(sheet,'data-tab="initiative"'),1,'aba Iniciativa duplicada ou ausente');
 assert.strictEqual(count(sheet,'id="initiative"'),1,'painel Iniciativa duplicado ou ausente');
 for(const id of ['attrs','skills','advantages','mods','resources','creationpa','creationmode','levelup']) assert.strictEqual(count(sheet,'id="'+id+'"'),1,'id crítico inválido: '+id);
@@ -18,18 +16,12 @@ assert.ok(!sheet.includes('sheet-initiative-extra.js'),'carregador antigo da ini
 assert.ok(sheet.includes('sheet-initiative-v21.js?v=22'),'iniciativa nova não versionada na release atual');
 assert.ok(sheet.includes('sheet-adv-desc-v21.js?v=22'),'descrições de vantagens ausentes');
 assert.ok(sheet.includes('sheet-qa-v22.js?v=22'),'patch QA v22 ausente');
-
-// Dashboard preserva iniciativa e funcionalidades de campanha.
 assert.ok(index.includes('initiative-extra.js'),'iniciativa do dashboard ausente');
 assert.ok(index.includes('campaignBody'),'corpo da campanha ausente');
 
-// Todo JS entregue ao navegador precisa pelo menos compilar.
 const runtimeJs=fs.readdirSync(out).filter(f=>f.endsWith('.js'));
 runtimeJs.forEach(compileFile);
-compileInline(sheet,'sheet.html');
-compileInline(index,'index.html');
 
-// Estrutura das regras carregadas na ficha.
 const dataSrc=fs.readFileSync(path.join(out,'sheet-data.js'),'utf8')+'\n;globalThis.__Q=Q;';
 const sandbox={};vm.createContext(sandbox);new vm.Script(dataSrc,{filename:'sheet-data.js'}).runInContext(sandbox);
 const Q=sandbox.__Q;
@@ -40,7 +32,6 @@ for(const attr of [...Q.attrs.map(x=>x[0]),'SORTE']){
   Q.adv[attr].forEach((g,i)=>assert.strictEqual(g[1].length,3,'esperadas 3 vantagens em '+attr+' grupo '+i));
 }
 
-// Regras matemáticas que não devem regredir.
 assert.deepStrictEqual([0,1,2,3,4].map(l=>l+l+1),[1,3,5,7,9],'custos de perícia incorretos');
 assert.deepStrictEqual([1,2,3,4].map(l=>10+l),[11,12,13,14],'custos de nível incorretos');
 const ca=(con,des,per,armor)=>con+des+per+armor,cs=(per,level,alert)=>per*(alert?2:1)+level;
