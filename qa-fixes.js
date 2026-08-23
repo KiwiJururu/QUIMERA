@@ -8,7 +8,6 @@ fs.writeFileSync(sheetPath,html);
 const runtime=String.raw`(() => {
   function npcNormalMode(){return (row?.kind==='npc'||row?.kind==='monster')&&!s.char?.freeEdit}
 
-  // NPC/Monstro com edição livre desligada deve seguir exatamente o orçamento de atributos da ficha base.
   const previousRenderAttrs=renderAttrs;
   renderAttrs=function(){
     if(!npcNormalMode())return previousRenderAttrs();
@@ -29,7 +28,6 @@ const runtime=String.raw`(() => {
     });
   };
 
-  // Reativa progressão normal para NPC/Monstro quando a edição livre estiver desligada.
   const previousRenderProgress=renderProgress;
   renderProgress=function(){
     previousRenderProgress();
@@ -51,7 +49,6 @@ const runtime=String.raw`(() => {
     if(level){level.readOnly=true;level.onchange=null;level.onfocus=null;}
   };
 
-  // Compra/descompra de vantagens no modo normal: usa as mesmas regras da ficha de jogador.
   const previousToggleAdv=toggleAdv;
   toggleAdv=function(attr,gi,ai,on){
     if(!npcNormalMode())return previousToggleAdv(attr,gi,ai,on);
@@ -81,10 +78,19 @@ const runtime=String.raw`(() => {
     save();renderAll();
   };
 
-  // Se o mestre alternar livre -> normal, garante que os controles sejam reconstruídos no estado correto.
   const previousRenderAll=renderAll;
   renderAll=function(){previousRenderAll();if(npcNormalMode()){try{renderProgress()}catch{}}};
 })();`;
 new vm.Script(runtime,{filename:'sheet-qa-v22.js'});
 fs.writeFileSync(path.join(out,'sheet-qa-v22.js'),runtime);
-console.log('Quimera v22 QA: modo normal de NPC/monstro alinhado à ficha base');
+
+// O gerador antigo sempre escolhia a primeira vantagem de cada grupo. Mantém o grupo sorteado,
+// mas sorteia também uma das três vantagens, aumentando a variedade sem mudar custos ou regras.
+const generatorPath=path.join(out,'sheet-npc-generator.js');
+let generator=fs.readFileSync(generatorPath,'utf8');
+const oldPick="const idx=Math.floor(Math.random()*groups.length),g=groups.splice(idx,1)[0],key=code+':'+g.gi+':0';s.advantages[key]=true;";
+const newPick="const idx=Math.floor(Math.random()*groups.length),g=groups.splice(idx,1)[0],ai=Math.floor(Math.random()*3),key=code+':'+g.gi+':'+ai;s.advantages[key]=true;";
+if(!generator.includes(oldPick))throw new Error('Trecho do gerador de vantagens não encontrado');
+generator=generator.replace(oldPick,newPick);
+fs.writeFileSync(generatorPath,generator);
+console.log('Quimera v22 QA: modo normal de NPC/monstro + variedade do gerador');
