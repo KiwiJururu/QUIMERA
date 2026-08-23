@@ -1,6 +1,6 @@
 const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert');
 const out=path.join(__dirname,'dist');
-const release=String(process.env.QUIMERA_RELEASE||'26');
+const release=String(process.env.QUIMERA_RELEASE||'28');
 const sheetPath=path.join(out,'sheet.html'),indexPath=path.join(out,'index.html');
 assert.ok(fs.existsSync(sheetPath),'dist/sheet.html ausente');
 assert.ok(fs.existsSync(indexPath),'dist/index.html ausente');
@@ -68,6 +68,12 @@ assert.ok(generator.includes('npcGeneratorClear'),'botão Limpar ficha do mestre
 assert.ok(generator.includes('clearMasterSheet'),'rotina de limpeza da ficha do mestre ausente');
 assert.ok(generator.includes("const keptName=s.char?.name||row?.name||''"),'limpeza do mestre deixou de preservar o nome');
 assert.ok(generator.includes("s.char.concept=''"),'limpeza do mestre não remove o conceito anterior');
+assert.ok(generator.includes('npcGeneratorProfile'),'seletor de arquétipo ausente');
+assert.ok(generator.includes('<option value="random">Aleatório</option>'),'opção de arquétipo aleatório ausente');
+assert.ok(generator.includes('resolveProfile'),'resolução de arquétipo selecionado ausente');
+for(const profile of ['Equilibrado','Combatente','Ágil','Mental','Social','Místico','Resistente'])assert.ok(generator.includes("name:'"+profile+"'"),'arquétipo ausente: '+profile);
+assert.ok(generator.includes('generateNpc(total,profileSelection)'),'gerador não recebe o arquétipo escolhido');
+assert.ok(generator.includes("box.querySelector('#npcGeneratorProfile').value"),'interface não envia o arquétipo escolhido ao gerador');
 
 const leveldown=fs.readFileSync(path.join(out,'sheet-leveldown.js'),'utf8');
 const refinements=fs.readFileSync(path.join(out,'sheet-refinements.js'),'utf8');
@@ -101,4 +107,4 @@ assert.strictEqual(ca(4,3,2,1),10,'fórmula de CA incorreta');
 assert.strictEqual(cs(4,3,false),7,'fórmula de CS normal incorreta');
 assert.strictEqual(cs(4,3,true),11,'fórmula de CS em alerta incorreta');
 
-console.log('SELFTEST OK v'+release+' — '+loaded.length+' scripts carregados compilados; estrutura, filtros, painel, exclusões, desempates, referências, gerador, reembolsos, campanhas, regras e fórmulas verificadas.');
+console.log('SELFTEST OK v'+release+' — '+loaded.length+' scripts carregados compilados; estrutura, filtros, painel, exclusões, desempates, referências, gerador selecionável, reembolsos, campanhas, regras e fórmulas verificadas.');
