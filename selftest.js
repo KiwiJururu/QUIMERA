@@ -6,6 +6,7 @@ assert.ok(fs.existsSync(indexPath),'dist/index.html ausente');
 const sheet=fs.readFileSync(sheetPath,'utf8'),index=fs.readFileSync(indexPath,'utf8');
 function count(text,needle){return text.split(needle).length-1}
 function compileFile(file){const src=fs.readFileSync(path.join(out,file),'utf8');new vm.Script(src,{filename:file})}
+function localScripts(html){const outFiles=[],re=/<script[^>]+src=["']([^"']+)["'][^>]*><\/script>/gi;let m;while((m=re.exec(html))){const src=m[1];if(!src.startsWith('/'))continue;const file=src.slice(1).split('?')[0];if(file.endsWith('.js'))outFiles.push(file)}return outFiles}
 
 assert.strictEqual(count(sheet,'data-tab="initiative"'),1,'aba Iniciativa duplicada ou ausente');
 assert.strictEqual(count(sheet,'id="initiative"'),1,'painel Iniciativa duplicado ou ausente');
@@ -18,7 +19,8 @@ assert.ok(sheet.includes('sheet-qa-v22.js?v=22'),'patch QA v22 ausente');
 assert.ok(index.includes('initiative-extra.js'),'iniciativa do dashboard ausente');
 assert.ok(index.includes('campaignBody'),'corpo da campanha ausente');
 
-['sheet-initiative-v21.js','sheet-adv-desc-v21.js','sheet-qa-v22.js','sheet-resource-fix.js'].forEach(compileFile);
+const loaded=[...new Set([...localScripts(sheet),...localScripts(index)])];
+loaded.forEach(file=>{assert.ok(fs.existsSync(path.join(out,file)),'script referenciado ausente: '+file);compileFile(file)});
 
 const dataSrc=fs.readFileSync(path.join(out,'sheet-data.js'),'utf8')+'\n;globalThis.__Q=Q;';
 const sandbox={};vm.createContext(sandbox);new vm.Script(dataSrc,{filename:'sheet-data.js'}).runInContext(sandbox);
@@ -35,4 +37,4 @@ const ca=(con,des,per,armor)=>con+des+per+armor,cs=(per,level,alert)=>per*(alert
 assert.strictEqual(ca(4,3,2,1),10,'fórmula de CA incorreta');
 assert.strictEqual(cs(4,3,false),7,'fórmula de CS normal incorreta');
 assert.strictEqual(cs(4,3,true),11,'fórmula de CS em alerta incorreta');
-console.log('SELFTEST OK — estrutura, runtimes críticos, regras e fórmulas verificadas.');
+console.log('SELFTEST OK — '+loaded.length+' scripts carregados compilados; estrutura, regras e fórmulas verificadas.');
