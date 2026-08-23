@@ -93,4 +93,44 @@ const newPick="const idx=Math.floor(Math.random()*groups.length),g=groups.splice
 if(!generator.includes(oldPick))throw new Error('Trecho do gerador de vantagens não encontrado');
 generator=generator.replace(oldPick,newPick);
 fs.writeFileSync(generatorPath,generator);
-console.log('Quimera v22 QA: modo normal de NPC/monstro + variedade do gerador');
+
+// Segurança de reembolso: edição livre não gasta PA. Se um nível/perícia foi definido manualmente,
+// removê-lo depois no modo normal não pode criar PA do nada. Compras registradas continuam reembolsando normalmente.
+const levelPath=path.join(out,'sheet-leveldown.js');
+let levelRuntime=fs.readFileSync(levelPath,'utf8');
+const oldLevelRefund=`    const source=payment?.source||(s.creation.enabled?'creation':'live');
+    s.char.level=L-1;
+    if(source==='creation')s.creation.pa=(Number(s.creation.pa)||0)+(payment?.amount||amount);
+    else s.char.pa=Math.min(10+(L-1),(Number(s.char.pa)||0)+(payment?.amount||amount));
+    save();renderAll();toast('Nível retrocedido e PA devolvido.');`;
+const newLevelRefund=`    s.char.level=L-1;
+    if(payment){
+      const paid=Number(payment.amount)||amount,source=payment.source||'live';
+      if(source==='creation')s.creation.pa=(Number(s.creation.pa)||0)+paid;
+      else s.char.pa=Math.min(10+(L-1),(Number(s.char.pa)||0)+paid);
+      save();renderAll();toast('Nível retrocedido e PA devolvido.');
+    }else{
+      save();renderAll();toast('Nível retrocedido sem reembolso: não havia compra registrada.');
+    }`;
+if(!levelRuntime.includes(oldLevelRefund))throw new Error('Trecho de reembolso de nível não encontrado');
+levelRuntime=levelRuntime.replace(oldLevelRefund,newLevelRefund);
+new vm.Script(levelRuntime,{filename:'sheet-leveldown.js'});
+fs.writeFileSync(levelPath,levelRuntime);
+
+const refinementsPath=path.join(out,'sheet-refinements.js');
+let refinementsRuntime=fs.readFileSync(refinementsPath,'utf8');
+const oldSkillRefund=`          const amount=Number(payment?.amount)||refundCost,source=payment?.source||(s.creation.enabled?'creation':'live');
+          s.skills[n]=l-1;refund(amount,source);save();renderAll();toast('Perícia descomprada e '+amount+' PA devolvidos.');`;
+const newSkillRefund=`          s.skills[n]=l-1;
+          if(payment){
+            const amount=Number(payment.amount)||refundCost,source=payment.source||'live';
+            refund(amount,source);save();renderAll();toast('Perícia descomprada e '+amount+' PA devolvidos.');
+          }else{
+            save();renderAll();toast('Perícia reduzida sem reembolso: não havia compra registrada.');
+          }`;
+if(!refinementsRuntime.includes(oldSkillRefund))throw new Error('Trecho de reembolso de perícia não encontrado');
+refinementsRuntime=refinementsRuntime.replace(oldSkillRefund,newSkillRefund);
+new vm.Script(refinementsRuntime,{filename:'sheet-refinements.js'});
+fs.writeFileSync(refinementsPath,refinementsRuntime);
+
+console.log('Quimera v22 QA: regras normais, variedade do gerador e reembolsos seguros');
