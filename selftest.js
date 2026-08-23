@@ -1,6 +1,6 @@
 const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert');
 const out=path.join(__dirname,'dist');
-const release=String(process.env.QUIMERA_RELEASE||'28');
+const release=String(process.env.QUIMERA_RELEASE||'29');
 const sheetPath=path.join(out,'sheet.html'),indexPath=path.join(out,'index.html');
 assert.ok(fs.existsSync(sheetPath),'dist/sheet.html ausente');
 assert.ok(fs.existsSync(indexPath),'dist/index.html ausente');
@@ -12,15 +12,17 @@ function localScripts(html){const outFiles=[],re=/<script[^>]+src=["']([^"']+)["
 assert.strictEqual(count(sheet,'data-tab="initiative"'),1,'aba Iniciativa duplicada ou ausente');
 assert.strictEqual(count(sheet,'id="initiative"'),1,'painel Iniciativa duplicado ou ausente');
 for(const id of ['attrs','skills','advantages','mods','resources','creationpa','creationmode','levelup']) assert.strictEqual(count(sheet,'id="'+id+'"'),1,'id crítico inválido: '+id);
-for(const asset of ['sheet-data.js','sheet-app.js','sheet-extra.js','sheet-leveldown.js','sheet-refinements.js','sheet-creation-fix.js','sheet-bonus-expansion.js','sheet-npc-generator.js','sheet-resource-fix.js','sheet-initiative-v21.js','sheet-adv-desc-v21.js','sheet-qa-v22.js','sheet-filters.js','dashboard-release.js','dashboard-delete.js','sheet-reference-v26.js']) assert.ok(fs.existsSync(path.join(out,asset)),'asset ausente: '+asset);
+for(const asset of ['sheet-data.js','sheet-app.js','sheet-extra.js','sheet-leveldown.js','sheet-refinements.js','sheet-creation-fix.js','sheet-bonus-expansion.js','sheet-npc-generator.js','sheet-resource-fix.js','sheet-initiative-v21.js','sheet-adv-desc-v21.js','sheet-qa-v22.js','sheet-filters.js','dashboard-release.js','dashboard-delete.js','sheet-reference-v26.js','dashboard-navigation-v29.js','sheet-navigation-v29.js']) assert.ok(fs.existsSync(path.join(out,asset)),'asset ausente: '+asset);
 assert.ok(!sheet.includes('sheet-initiative-extra.js'),'carregador antigo da iniciativa ainda presente');
 assert.ok(sheet.includes('sheet-initiative-v21.js?v='+release),'iniciativa nova não versionada na release atual');
 assert.ok(sheet.includes('sheet-adv-desc-v21.js?v='+release),'descrições de vantagens ausentes');
 assert.ok(sheet.includes('sheet-qa-v22.js?v='+release),'patch QA ausente');
 assert.ok(sheet.includes('sheet-filters.js?v='+release),'filtros de adquiridos ausentes');
 assert.ok(sheet.includes('sheet-reference-v26.js?v='+release),'referências rápidas não versionadas na release atual');
+assert.ok(sheet.includes('sheet-navigation-v29.js?v='+release),'navegação da ficha não versionada na release atual');
 assert.ok(index.includes('dashboard-release.js?v='+release),'ajuste final do resumo do painel ausente');
 assert.ok(index.includes('dashboard-delete.js?v='+release),'controles de exclusão ausentes');
+assert.ok(index.includes('dashboard-navigation-v29.js?v='+release),'navegação do painel não versionada na release atual');
 assert.ok(sheet.includes('name="quimera-release" content="'+release+'"'),'marcador da release ausente na ficha');
 assert.ok(index.includes('name="quimera-release" content="'+release+'"'),'marcador da release ausente no painel');
 
@@ -30,6 +32,14 @@ assert.ok(index.includes("sb.rpc('create_campaign'"),'criação robusta de campa
 
 const loaded=[...new Set([...localScripts(sheet),...localScripts(index)])];
 loaded.forEach(file=>{assert.ok(fs.existsSync(path.join(out,file)),'script referenciado ausente: '+file);compileFile(file)});
+
+const navDashboard=fs.readFileSync(path.join(out,'dashboard-navigation-v29.js'),'utf8');
+const navSheet=fs.readFileSync(path.join(out,'sheet-navigation-v29.js'),'utf8');
+for(const text of ['returnCampaign','returnTab','history.replaceState','campaignUrl'])assert.ok(navDashboard.includes(text),'navegação do painel incompleta: '+text);
+assert.ok(navDashboard.includes("p.get('tab')")||navDashboard.includes("get('tab')"),'painel não restaura a aba pela URL');
+assert.ok(navSheet.includes('history.back()'),'botão voltar não usa histórico quando existe página anterior');
+assert.ok(navSheet.includes('fallbackCampaignUrl'),'fallback para campanha ausente');
+assert.ok(navSheet.includes("p.get('returnTab')"),'ficha não preserva aba de retorno');
 
 const filters=fs.readFileSync(path.join(out,'sheet-filters.js'),'utf8');
 assert.ok(filters.includes('Mostrar somente perícias adquiridas'),'controle de filtro de perícias ausente');
@@ -84,7 +94,7 @@ assert.ok(!refinements.includes("payment?.source||(s.creation.enabled?'creation'
 
 const buildInfo=JSON.parse(fs.readFileSync(path.join(out,'build-info.json'),'utf8'));
 assert.strictEqual(String(buildInfo.release),release,'build-info com release incorreta');
-for(const feature of ['initiative','free-edit','creation-pa','attribute-bonuses','effective-dashboard-stats','npc-generator','resource-steppers','advantage-descriptions','owned-filters','campaign-delete','character-delete','initiative-manual-ties','mastery-descriptions','pd-quick-reference'])assert.ok(buildInfo.features.includes(feature),'feature ausente no manifesto: '+feature);
+for(const feature of ['initiative','free-edit','creation-pa','attribute-bonuses','effective-dashboard-stats','npc-generator','resource-steppers','advantage-descriptions','owned-filters','campaign-delete','character-delete','initiative-manual-ties','mastery-descriptions','pd-quick-reference','navigation-context'])assert.ok(buildInfo.features.includes(feature),'feature ausente no manifesto: '+feature);
 
 const dataSrc=fs.readFileSync(path.join(out,'sheet-data.js'),'utf8')+'\n;globalThis.__Q=Q;';
 const sandbox={};vm.createContext(sandbox);new vm.Script(dataSrc,{filename:'sheet-data.js'}).runInContext(sandbox);
@@ -107,4 +117,4 @@ assert.strictEqual(ca(4,3,2,1),10,'fórmula de CA incorreta');
 assert.strictEqual(cs(4,3,false),7,'fórmula de CS normal incorreta');
 assert.strictEqual(cs(4,3,true),11,'fórmula de CS em alerta incorreta');
 
-console.log('SELFTEST OK v'+release+' — '+loaded.length+' scripts carregados compilados; estrutura, filtros, painel, exclusões, desempates, referências, gerador selecionável, reembolsos, campanhas, regras e fórmulas verificadas.');
+console.log('SELFTEST OK v'+release+' — '+loaded.length+' scripts carregados compilados; estrutura, navegação contextual, filtros, painel, exclusões, desempates, referências, gerador selecionável, reembolsos, campanhas, regras e fórmulas verificadas.');
