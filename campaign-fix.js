@@ -1,0 +1,9 @@
+const fs=require('fs'),path=require('path');
+const file=path.join(__dirname,'dist','index.html');
+let html=fs.readFileSync(file,'utf8');
+const before=`function openNewCampaign(){showModal('Nova campanha',\`<div class="field"><label>Nome</label><input id="newCampName" placeholder="Nome da campanha"></div><div class="field"><label>Descrição</label><textarea id="newCampDesc" rows="3" placeholder="Opcional"></textarea></div><button id="createCamp" class="btn primary" style="width:100%">Criar campanha</button>\`);$('#createCamp').onclick=async()=>{const name=$('#newCampName').value.trim();if(!name)return toast('Digite um nome.');const {data,error}=await sb.from('campaigns').insert({name,description:$('#newCampDesc').value.trim()||null,owner_id:user.id}).select().single();if(error)return toast(error.message);closeModal();await openCampaign(data.id)}}`;
+const after=`function openNewCampaign(){showModal('Nova campanha',\`<div class="field"><label>Nome</label><input id="newCampName" placeholder="Nome da campanha"></div><div class="field"><label>Descrição</label><textarea id="newCampDesc" rows="3" placeholder="Opcional"></textarea></div><button id="createCamp" class="btn primary" style="width:100%">Criar campanha</button>\`);$('#createCamp').onclick=async()=>{const name=$('#newCampName').value.trim(),description=$('#newCampDesc').value.trim();if(!name)return toast('Digite um nome.');const btn=$('#createCamp');btn.disabled=true;btn.textContent='Criando...';const {data,error}=await sb.rpc('create_campaign',{p_name:name,p_description:description||null});if(error){btn.disabled=false;btn.textContent='Criar campanha';return toast(error.message||'Não foi possível criar a campanha.')}closeModal();await openCampaign(data)}}`;
+if(!html.includes(before))throw new Error('Trecho de criação de campanha não encontrado no build.');
+html=html.replace(before,after);
+fs.writeFileSync(file,html);
+console.log('Correção de criação de campanha aplicada.');
