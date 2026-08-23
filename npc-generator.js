@@ -4,8 +4,8 @@ let html=fs.readFileSync(sheetPath,'utf8');
 html=html.replace(/\?v=\d+/g,'?v=19');
 if(!html.includes('/sheet-npc-generator.js')) html=html.replace('</body>','<script src="/sheet-npc-generator.js?v=19"></script></body>');
 html=html.replace('</head>',`<style>
-.attr-total-big{font-size:30px;line-height:1;font-weight:950;color:var(--p);margin:8px 0 5px}.attr-base-editor{display:flex;align-items:center;justify-content:center;gap:6px}.attr-base-editor small{font-size:9px;font-weight:900;color:#756c78;text-transform:uppercase;letter-spacing:.04em}.attr-base-editor input{width:58px!important;padding:5px 6px!important;font-size:13px!important;font-weight:850!important;text-align:center}.npc-generator-box{margin-top:14px}.npc-generator-controls{display:grid;grid-template-columns:minmax(130px,190px) auto;gap:9px;align-items:end;margin-top:10px}.npc-generator-result{margin-top:10px}.npc-generator-result b{color:var(--p)}
-@media(max-width:520px){.npc-generator-controls{grid-template-columns:1fr}.attr-total-big{font-size:27px}}
+.attr-total-big{font-size:30px;line-height:1;font-weight:950;color:var(--p);margin:8px 0 5px}.attr-base-editor{display:flex;align-items:center;justify-content:center;gap:6px}.attr-base-editor small{font-size:9px;font-weight:900;color:#756c78;text-transform:uppercase;letter-spacing:.04em}.attr-base-editor input{width:58px!important;padding:5px 6px!important;font-size:13px!important;font-weight:850!important;text-align:center}.npc-generator-box{margin-top:14px}.npc-generator-controls{display:grid;grid-template-columns:minmax(130px,190px) minmax(220px,1fr);gap:9px;align-items:end;margin-top:10px}.npc-generator-actions{display:flex;gap:8px;flex-wrap:wrap}.npc-generator-actions button{flex:1;min-width:150px}.npc-generator-result{margin-top:10px}.npc-generator-result b{color:var(--p)}
+@media(max-width:520px){.npc-generator-controls{grid-template-columns:1fr}.npc-generator-actions{display:grid;grid-template-columns:1fr}.attr-total-big{font-size:27px}}
 </style></head>`);
 
 const runtime=String.raw`(() => {
@@ -42,6 +42,17 @@ const runtime=String.raw`(() => {
     s.attrs={CON:0,FOR:0,DES:0,INT:0,PER:0,CAR:0,ESP:0};
     s.skills={};s.advantages={};s.luckSources={};s.advPayments={};s.levelPayments=[];s.skillPayments={};
     s.modifiers=[];s.attrModifiers=[];s.resources={pv:null,ps:null,pd:null};
+  }
+  function clearMasterSheet(){
+    if(row?.kind!=='npc'&&row?.kind!=='monster')return;
+    if(!confirm('Limpar esta ficha? O nome será mantido, mas conceito, atributos, perícias, vantagens, bônus, recursos e anotações serão apagados.'))return;
+    const keptName=s.char?.name||row?.name||'';
+    resetMechanical();
+    s.char.name=keptName;s.char.player='';s.char.concept='';s.char.armor=0;s.char.alert=false;s.char.pressure=0;s.char.inventory='';s.char.notes='';s.char.luckNumber='';s.char.otherResources='';
+    s.creation={enabled:false,pa:0};s.bonds=[];
+    save();renderAll();
+    const result=document.querySelector('#npcGeneratorResult');if(result)result.textContent='Ficha limpa. O nome foi mantido.';
+    toast('Ficha limpa.');
   }
   function spendCreation(amount){amount=Number(amount)||0;if((Number(s.creation.pa)||0)<amount)return false;s.creation.pa-=amount;return true}
   function buildLevels(totalBudget){
@@ -83,7 +94,7 @@ const runtime=String.raw`(() => {
   function generateNpc(total){
     total=Math.max(0,Math.floor(Number(total)||0));if(!total)return toast('Informe uma quantidade de PA maior que zero.');
     if(!confirm('Gerar novamente substituirá nível, atributos, perícias, vantagens e bônus mecânicos atuais. Continuar?'))return;
-    const profile=choose(PROFILES);resetMechanical();
+    const profile=choose(PROFILES);resetMechanical();s.char.concept=profile.name;
     if(!s.creation||typeof s.creation!=='object')s.creation={enabled:true,pa:total};s.creation.enabled=true;s.creation.pa=total;
     buildLevels(total);buildAttrs(profile);buildFreeAdvantages();buildSkills(profile);
     const left=Number(s.creation.pa)||0,spent=total-left;
@@ -96,9 +107,10 @@ const runtime=String.raw`(() => {
     if(document.querySelector('#npcGeneratorBox'))return;
     const geral=document.querySelector('#geral');if(!geral)return;
     const box=document.createElement('div');box.id='npcGeneratorBox';box.className='paper npc-generator-box';
-    box.innerHTML='<h2>Gerador rápido</h2><div class="note">Para NPCs e monstros genéricos: informe apenas o orçamento total de PA. O gerador escolhe um perfil, calcula o nível, distribui os pontos de atributo, compra perícias e seleciona vantagens gratuitas disponíveis. Depois você pode ajustar a ficha normalmente.</div><div class="npc-generator-controls"><div class="field"><label>PA para distribuir</label><input id="npcGeneratorPa" type="number" min="1" value="30"></div><button id="npcGeneratorGo" class="primary">Gerar ficha automática</button></div><div id="npcGeneratorResult" class="npc-generator-result muted"></div>';
+    box.innerHTML='<h2>Gerador rápido</h2><div class="note">Para NPCs e monstros genéricos: informe apenas o orçamento total de PA. O gerador escolhe um arquétipo, registra esse arquétipo em Conceito, calcula o nível, distribui os pontos de atributo, compra perícias e seleciona vantagens gratuitas disponíveis. Depois você pode ajustar a ficha normalmente.</div><div class="npc-generator-controls"><div class="field"><label>PA para distribuir</label><input id="npcGeneratorPa" type="number" min="1" value="30"></div><div class="npc-generator-actions"><button id="npcGeneratorGo" class="primary">Gerar ficha automática</button><button id="npcGeneratorClear" class="danger">Limpar ficha</button></div></div><div id="npcGeneratorResult" class="npc-generator-result muted"></div>';
     const creation=document.querySelector('#creationPaper');if(creation)creation.insertAdjacentElement('beforebegin',box);else geral.appendChild(box);
     box.querySelector('#npcGeneratorGo').onclick=()=>generateNpc(box.querySelector('#npcGeneratorPa').value);
+    box.querySelector('#npcGeneratorClear').onclick=clearMasterSheet;
   }
   const prevRenderAll=renderAll;renderAll=function(){prevRenderAll();decorateAttrTotals();ensureGenerator()};
   let tries=0;const timer=setInterval(()=>{tries++;if(ready()){clearInterval(timer);renderAll()}else if(tries>100)clearInterval(timer)},100);
@@ -106,4 +118,4 @@ const runtime=String.raw`(() => {
 new vm.Script(runtime,{filename:'sheet-npc-generator.js'});
 fs.writeFileSync(path.join(out,'sheet-npc-generator.js'),runtime);
 fs.writeFileSync(sheetPath,html);
-console.log('Quimera v19: atributo total em destaque + gerador rapido de NPC');
+console.log('Quimera: atributo total em destaque + gerador rápido + conceito automático + limpar ficha do mestre');
