@@ -65,7 +65,7 @@ assert.ok(!refinements.includes("payment?.source||(s.creation.enabled?'creation'
 
 const buildInfo=JSON.parse(fs.readFileSync(path.join(out,'build-info.json'),'utf8'));
 assert.strictEqual(String(buildInfo.release),release,'build-info com release incorreta');
-for(const feature of ['initiative','free-edit','creation-pa','attribute-bonuses','effective-dashboard-stats','npc-generator','resource-steppers','advantage-descriptions','owned-filters'])assert.ok(buildInfo.features.includes(feature),'feature ausente no manifesto: '+feature);
+for(const feature of ['initiative','free-edit','creation-pa','attribute-bonuses','effective-dashboard-stats','npc-generator','resource-steppers','advantage-descriptions','owned-filters','campaign-delete','character-delete'])assert.ok(buildInfo.features.includes(feature),'feature ausente no manifesto: '+feature);
 
 const dataSrc=fs.readFileSync(path.join(out,'sheet-data.js'),'utf8')+'\n;globalThis.__Q=Q;';
 const sandbox={};vm.createContext(sandbox);new vm.Script(dataSrc,{filename:'sheet-data.js'}).runInContext(sandbox);
